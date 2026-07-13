@@ -43,15 +43,27 @@ jobs:
           dotnet build --configuration Release -p:Version=${{ steps.version.outputs.value }}
           dotnet build --configuration Release.Emby -p:Version=${{ steps.version.outputs.value }}
 
+      - name: Collect release packages
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euxo pipefail
+          find Jellyfin.Plugin.MetaTube -type f -name '*.zip' -print
+          jellyfin_zip="$(find Jellyfin.Plugin.MetaTube -type f -name 'Jellyfin.HenTube@v*.zip' -print -quit)"
+          emby_zip="$(find Jellyfin.Plugin.MetaTube -type f -name 'Emby.HenTube@v*.zip' -print -quit)"
+          test -n "$jellyfin_zip"
+          test -n "$emby_zip"
+          mkdir -p artifacts
+          cp "$jellyfin_zip" "artifacts/Jellyfin.HenTube@v${VERSION}.zip"
+          cp "$emby_zip" "artifacts/Emby.HenTube@v${VERSION}.zip"
+          ls -l artifacts
+
       - name: Generate Jellyfin repository manifest
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euxo pipefail
-          jellyfin_zip="Jellyfin.Plugin.MetaTube/bin/Jellyfin.HenTube@v${VERSION}.zip"
-          test -f "$jellyfin_zip"
-          ls -l Jellyfin.Plugin.MetaTube/bin/*.zip
-          python3 scripts/manifest.py "$jellyfin_zip"
+          python3 scripts/manifest.py "artifacts/Jellyfin.HenTube@v${VERSION}.zip"
           python3 -m json.tool manifest.json >/dev/null
 
       - name: Publish manifest branch
@@ -72,5 +84,5 @@ jobs:
           draft: false
           tag_name: v${{ steps.version.outputs.value }}
           files: |
-            Jellyfin.Plugin.MetaTube/bin/Jellyfin.HenTube@v${{ steps.version.outputs.value }}.zip
-            Jellyfin.Plugin.MetaTube/bin/Emby.HenTube@v${{ steps.version.outputs.value }}.zip
+            artifacts/Jellyfin.HenTube@v${{ steps.version.outputs.value }}.zip
+            artifacts/Emby.HenTube@v${{ steps.version.outputs.value }}.zip
