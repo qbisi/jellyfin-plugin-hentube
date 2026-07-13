@@ -30,15 +30,15 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     }
 #endif
 
-    public const string ProviderName = "MetaTube";
+    public const string ProviderName = "HenTube";
 
-    public const string ProviderId = "MetaTube";
+    public const string ProviderId = "HenTube";
 
     public override string Name => ProviderName;
 
-    public override string Description => "MetaTube Plugin for Jellyfin/Emby";
+    public override string Description => "HenTube metadata plugin for Jellyfin/Emby";
 
-    public override Guid Id => Guid.Parse("01cc53ec-c415-4108-bbd4-a684a9801a32");
+    public override Guid Id => Guid.Parse("a32c0577-9dd2-431b-94a6-73720e040d86");
 
     public static Plugin Instance { get; private set; }
 
