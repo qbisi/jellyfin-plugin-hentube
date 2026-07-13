@@ -44,9 +44,15 @@ jobs:
           dotnet build --configuration Release.Emby -p:Version=${{ steps.version.outputs.value }}
 
       - name: Generate Jellyfin repository manifest
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          python3 -m pip install packaging
-          python3 scripts/manifest.py Jellyfin.Plugin.MetaTube/bin/Jellyfin.HenTube@v${{ steps.version.outputs.value }}.zip
+          set -euxo pipefail
+          jellyfin_zip="Jellyfin.Plugin.MetaTube/bin/Jellyfin.HenTube@v${VERSION}.zip"
+          test -f "$jellyfin_zip"
+          ls -l Jellyfin.Plugin.MetaTube/bin/*.zip
+          python3 scripts/manifest.py "$jellyfin_zip"
+          python3 -m json.tool manifest.json >/dev/null
 
       - name: Publish manifest branch
         run: |
