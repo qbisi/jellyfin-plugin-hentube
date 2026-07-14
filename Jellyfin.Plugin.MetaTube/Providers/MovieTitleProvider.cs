@@ -31,7 +31,7 @@ public sealed class MovieTitleProvider : ICustomMetadataProvider<Movie>, IPreRef
         cancellationToken.ThrowIfCancellationRequested();
 
         // Leave ordinary movie names to Jellyfin and other metadata providers.
-        if (!FilenameTitle.TryGetTaggedTitle(item.Path, out var title))
+        if (!FilenameTitle.TryGetStructuredTitle(item.Path, out var title))
             return Task.FromResult(ItemUpdateType.None);
 
         if (!string.Equals(item.Name, title, StringComparison.Ordinal) ||

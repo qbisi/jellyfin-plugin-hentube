@@ -83,6 +83,8 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         // Keep the title derived from the basename even when the matched title
         // is substituted or translated below.
         if (string.IsNullOrWhiteSpace(originalTitle)) originalTitle = m.Title;
+        var metadataTitle = FilenameTitle.SelectMetadataTitle(m.Title, originalTitle);
+        m.Title = metadataTitle;
 
         // Convert to real actor names.
         if (Configuration.EnableRealActorNames)
@@ -102,7 +104,24 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 
         // Translate movie info.
         if (Configuration.TranslationMode != TranslationMode.Disabled)
-            await TranslateMovieInfo(m, info.MetadataLanguage, cancellationToken);
+        {
+            // HenTube titles are deliberately Japanese-first. Do not send the
+            // title through a translator (which can turn フラチ into Frach),
+            // but continue translating summaries when configured.
+            m.Title = string.Empty;
+            try
+            {
+                await TranslateMovieInfo(m, info.MetadataLanguage, cancellationToken);
+            }
+            finally
+            {
+                m.Title = metadataTitle;
+            }
+        }
+
+        // Title substitution and translation must never replace the selected
+        // Japanese title or the basename fallback.
+        m.Title = metadataTitle;
 
         // Distinct and clean blank list
         m.Genres = m.Genres?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray() ?? Array.Empty<string>();

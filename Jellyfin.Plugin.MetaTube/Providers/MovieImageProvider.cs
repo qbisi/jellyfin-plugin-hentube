@@ -49,12 +49,6 @@ public class MovieImageProvider : BaseProvider, IRemoteImageProvider, IHasOrder
                 ProviderName = Name,
                 Type = ImageType.Thumb,
                 Url = ApiClient.GetThumbImageApiUrl(m.Provider, m.Id)
-            },
-            new()
-            {
-                ProviderName = Name,
-                Type = ImageType.Backdrop,
-                Url = ApiClient.GetBackdropImageApiUrl(m.Provider, m.Id)
             }
         };
 
@@ -73,13 +67,6 @@ public class MovieImageProvider : BaseProvider, IRemoteImageProvider, IHasOrder
                 Type = ImageType.Thumb,
                 Url = ApiClient.GetThumbImageApiUrl(m.Provider, m.Id, imageUrl)
             });
-
-            images.Add(new RemoteImageInfo
-            {
-                ProviderName = Name,
-                Type = ImageType.Backdrop,
-                Url = ApiClient.GetBackdropImageApiUrl(m.Provider, m.Id, imageUrl)
-            });
         }
 
         return images;
@@ -95,8 +82,7 @@ public class MovieImageProvider : BaseProvider, IRemoteImageProvider, IHasOrder
         return new List<ImageType>
         {
             ImageType.Primary,
-            ImageType.Thumb,
-            ImageType.Backdrop
+            ImageType.Thumb
         };
     }
 }

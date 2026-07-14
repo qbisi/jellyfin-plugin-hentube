@@ -33,6 +33,19 @@ the media path and removes every `[...]` tag. This corrects Jellyfin's partial
 parsing of names such as `[date][studio] title` even when the HenTube server is
 offline or returns no match. A successful match may replace the display name
 with the provider title, while `OriginalTitle` keeps the tag-free filename title.
+The complete basename is sent unchanged, so the server can classify date and
+studio fields independently of their order. Combined `[studio‖date]` and
+`[date‖studio]`, separate or trailing tags, and filenames without tags are all
+supported.
+
+Matched titles are Japanese-first. English and romanized provider titles are
+never applied: when Japanese metadata is unavailable, HenTube keeps the cleaned
+filename title. Title translation is skipped for HenTube even when it is enabled
+in the plugin configuration; summary translation continues to work normally.
+
+HenTube only exposes primary poster and thumbnail images. Backdrop images are
+disabled because the current metadata source does not provide suitable widescreen
+artwork; poster covers are never repurposed as Jellyfin backdrops.
 
 ## Compatibility
 
