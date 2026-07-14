@@ -48,20 +48,41 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info,
         CancellationToken cancellationToken)
     {
+        var originalTitle = FilenameTitle.GetOriginalTitle(info.Path, info.Name);
         var pid = info.GetPid(Plugin.ProviderId);
         if (string.IsNullOrWhiteSpace(pid.Id) || string.IsNullOrWhiteSpace(pid.Provider))
         {
             // Search movies and pick the first result.
             var firstResult = (await GetSearchResults(info, cancellationToken)).FirstOrDefault();
-            if (firstResult != null) pid = firstResult.GetPid(Plugin.ProviderId);
+            if (firstResult == null)
+            {
+                Logger.Info("Keep filename title because no HenTube metadata matched: {0}", originalTitle);
+                return FilenameMetadata(originalTitle);
+            }
+
+            pid = firstResult.GetPid(Plugin.ProviderId);
         }
 
         Logger.Info("Get movie info: {0}", pid.ToString());
 
-        var m = await ApiClient.GetMovieInfoAsync(pid.Provider, pid.Id, cancellationToken);
+        Jellyfin.Plugin.MetaTube.Metadata.MovieInfo m;
+        try
+        {
+            m = await ApiClient.GetMovieInfoAsync(pid.Provider, pid.Id, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            Logger.Warn("HenTube movie info failed; keep filename title: {0}", e.Message);
+            return new MetadataResult<Movie>();
+        }
 
-        // Preserve original title.
-        var originalTitle = m.Title;
+        // Keep the title derived from the basename even when the matched title
+        // is substituted or translated below.
+        if (string.IsNullOrWhiteSpace(originalTitle)) originalTitle = m.Title;
 
         // Convert to real actor names.
         if (Configuration.EnableRealActorNames)
@@ -205,9 +226,23 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         var searchResults = new List<MovieSearchResult>();
         if (string.IsNullOrWhiteSpace(pid.Id) || string.IsNullOrWhiteSpace(pid.Provider))
         {
-            // Search movie by name.
-            Logger.Info("Search for movie: {0}", info.Name);
-            searchResults.AddRange(await ApiClient.SearchMovieAsync(info.Name, pid.Provider, cancellationToken));
+            // Preserve the complete basename so date/studio tags reach the
+            // HenTube server even if Jellyfin already damaged info.Name.
+            var query = FilenameTitle.GetSearchQuery(info.Path, info.Name);
+            Logger.Info("Search for movie: {0}", query);
+            try
+            {
+                searchResults.AddRange(await ApiClient.SearchMovieAsync(query, pid.Provider, cancellationToken));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Logger.Warn("HenTube movie search failed; keep filename title: {0}", e.Message);
+                return Array.Empty<RemoteSearchResult>();
+            }
         }
         else
         {
@@ -375,5 +410,20 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
                 (sb, kvp) => sb.Replace(kvp.Key, kvp.Value));
 
         return sb.ToString().Trim();
+    }
+
+    private static MetadataResult<Movie> FilenameMetadata(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return new MetadataResult<Movie>();
+
+        return new MetadataResult<Movie>
+        {
+            Item = new Movie
+            {
+                Name = title,
+                OriginalTitle = title
+            },
+            HasMetadata = true
+        };
     }
 }

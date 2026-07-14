@@ -101,7 +101,7 @@ def main() -> None:
         "checksum": md5sum(package),
         "changelog": "Use the media basename for metadata searches.",
         "targetAbi": target_abi(),
-        "sourceUrl": (
+        "sourceUrl": os.environ.get("SOURCE_URL") or (
             f"https://github.com/{REPOSITORY}/releases/download/"
             f"v{version}/Jellyfin.HenTube@v{version}.zip"
         ),

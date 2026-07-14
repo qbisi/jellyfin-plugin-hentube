@@ -17,16 +17,22 @@ The release workflow publishes the Jellyfin package, GitHub Release asset, check
 For a media path such as:
 
 ```text
-/media/movies/[studio] title [260522].mkv
+    /media/movies/[260522][studio] title.mkv
 ```
 
 HenTube sends this query to the configured MetaTube-compatible server:
 
 ```text
-[studio] title [260522]
+    [260522][studio] title
 ```
 
 When Jellyfin does not provide a usable path, HenTube falls back to `info.Name`.
+
+Before remote metadata matching, HenTube also derives the local movie title from
+the media path and removes every `[...]` tag. This corrects Jellyfin's partial
+parsing of names such as `[date][studio] title` even when the HenTube server is
+offline or returns no match. A successful match may replace the display name
+with the provider title, while `OriginalTitle` keeps the tag-free filename title.
 
 ## Compatibility
 
