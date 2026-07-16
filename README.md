@@ -42,8 +42,7 @@ tags remain usable without a backend.
 
 Matched titles are Japanese-first. English and romanized provider titles are
 never applied: when Japanese metadata is unavailable, HenTube keeps the cleaned
-filename title. Title translation is skipped for HenTube even when it is enabled
-in the plugin configuration; summary translation continues to work normally.
+filename title.
 
 HenTube only exposes primary poster and thumbnail images. Backdrop images are
 disabled because the current metadata source does not provide suitable widescreen

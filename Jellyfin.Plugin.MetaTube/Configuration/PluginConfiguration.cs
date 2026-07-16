@@ -1,5 +1,4 @@
 using Jellyfin.Plugin.MetaTube.Helpers;
-using Jellyfin.Plugin.MetaTube.Translation;
 #if __EMBY__
 using System.ComponentModel;
 using Emby.Web.GenericEdit;
@@ -63,12 +62,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool EnableCollections { get; set; } = false;
 
 #if __EMBY__
-    [DisplayName("Enable directors")]
-    [Description("Add directors to corresponding video metadata.")]
-#endif
-    public bool EnableDirectors { get; set; } = true;
-
-#if __EMBY__
     [DisplayName("Enable ratings")]
     [Description("Display community ratings from the original website.")]
 #endif
@@ -79,24 +72,6 @@ public class PluginConfiguration : BasePluginConfiguration
     [Description("Generate online video trailers in strm format.")]
 #endif
     public bool EnableTrailers { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Enable real actor names")]
-    [Description("Search and replace with real actor names from AVBASE.")]
-#endif
-    public bool EnableRealActorNames { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Enable badges")]
-    [Description("Add Chinese subtitle badges to primary images.")]
-#endif
-    public bool EnableBadges { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Badge url")]
-    [Description("Custom badge url, PNG format is recommended. (default: zimu.png)")]
-#endif
-    public string BadgeUrl { get; set; } = "zimu.png";
 
 #if __EMBY__
     [DisplayName("Primary image ratio")]
@@ -112,118 +87,6 @@ public class PluginConfiguration : BasePluginConfiguration
     [Required]
 #endif
     public int DefaultImageQuality { get; set; } = 90;
-
-#if __EMBY__
-    [DisplayName("Enable movie provider filter")]
-    [Description("Filter and reorder search results from movie providers.")]
-#endif
-    public bool EnableMovieProviderFilter { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Movie provider filter")]
-    [Description(
-        "Provider names are case-insensitive, with decreasing precedence from left to right, separated by commas.")]
-#endif
-    public string RawMovieProviderFilter
-    {
-        get => _movieProviderFilter?.Any() == true ? string.Join(',', _movieProviderFilter) : string.Empty;
-        set => _movieProviderFilter = value?.Split(',').Select(s => s.Trim()).Where(s => s.Any())
-            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-    }
-
-    public List<string> GetMovieProviderFilter()
-    {
-        return _movieProviderFilter;
-    }
-
-    private List<string> _movieProviderFilter;
-
-#if __EMBY__
-    [DisplayName("Enable template")]
-#endif
-    public bool EnableTemplate { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Name template")]
-#endif
-    public string NameTemplate { get; set; } = DefaultNameTemplate;
-
-#if __EMBY__
-    [DisplayName("Tagline template")]
-#endif
-    public string TaglineTemplate { get; set; } = DefaultTaglineTemplate;
-
-    public static string DefaultNameTemplate => "{number} {title}";
-
-    public static string DefaultTaglineTemplate => "配信開始日 {date}";
-
-#if __EMBY__
-    [DisplayName("Translation mode")]
-#endif
-    public TranslationMode TranslationMode { get; set; } = TranslationMode.Disabled;
-
-#if __EMBY__
-    [DisplayName("Translation engine")]
-#endif
-    public TranslationEngine TranslationEngine { get; set; } = TranslationEngine.Baidu;
-
-#if __EMBY__
-    [DisplayName("Baidu app id")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.Baidu)]
-#endif
-    public string BaiduAppId { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("Baidu app key")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.Baidu)]
-#endif
-    public string BaiduAppKey { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("Google api key")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.Google)]
-#endif
-    public string GoogleApiKey { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("Google api url")]
-    [Description("Custom Google translate api url. (optional)")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.Google)]
-#endif
-    public string GoogleApiUrl { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("DeepL api key")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.DeepL)]
-#endif
-    public string DeepLApiKey { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("DeepL api url")]
-    [Description("Custom DeepL-compatible api url. (optional)")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.DeepL)]
-#endif
-    public string DeepLApiUrl { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("OpenAI api key")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.OpenAi)]
-#endif
-    public string OpenAiApiKey { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("OpenAI api url")]
-    [Description("Custom OpenAI-compatible api url. (optional)")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.OpenAi)]
-#endif
-    public string OpenAiApiUrl { get; set; } = string.Empty;
-
-#if __EMBY__
-    [DisplayName("OpenAI model")]
-    [Description("Custom OpenAI-compatible api model. (optional)")]
-    [VisibleCondition(nameof(TranslationEngine), ValueCondition.IsEqual, TranslationEngine.OpenAi)]
-#endif
-    public string OpenAiModel { get; set; } = string.Empty;
 
 #if __EMBY__
     [DisplayName("Enable title substitution")]
@@ -248,30 +111,6 @@ public class PluginConfiguration : BasePluginConfiguration
     }
 
     private SubstitutionTable _titleSubstitutionTable;
-
-#if __EMBY__
-    [DisplayName("Enable actor substitution")]
-#endif
-    public bool EnableActorSubstitution { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Actor substitution table")]
-    [Description(
-        "One record per line, separated by equal signs. Leave the target actor blank to delete the source actor.")]
-    [EditMultiline(5)]
-#endif
-    public string ActorRawSubstitutionTable
-    {
-        get => _actorSubstitutionTable?.ToString();
-        set => _actorSubstitutionTable = SubstitutionTable.Parse(value);
-    }
-
-    public SubstitutionTable GetActorSubstitutionTable()
-    {
-        return _actorSubstitutionTable;
-    }
-
-    private SubstitutionTable _actorSubstitutionTable;
 
 #if __EMBY__
     [DisplayName("Enable genre substitution")]

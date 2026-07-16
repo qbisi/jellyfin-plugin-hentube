@@ -10,9 +10,6 @@ public class MovieInfo : MovieSearchResult
     [JsonPropertyName("big_thumb_url")]
     public string BigThumbUrl { get; set; }
 
-    [JsonPropertyName("director")]
-    public string Director { get; set; }
-
     [JsonPropertyName("genres")]
     public string[] Genres { get; set; }
 

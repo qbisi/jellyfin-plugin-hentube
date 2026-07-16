@@ -18,7 +18,6 @@ public static class ApiClient
     private const string PrimaryImageApi = "/v1/images/primary";
     private const string ThumbImageApi = "/v1/images/thumb";
     private const string BackdropImageApi = "/v1/images/backdrop";
-    private const string TranslateApi = "/v1/translate";
 
     private static string ComposeUrl(string path, NameValueCollection nv)
     {
@@ -35,7 +34,7 @@ public static class ApiClient
     }
 
     private static string ComposeImageApiUrl(string path, string provider, string id, string url = default,
-        double ratio = -1, double position = -1, bool auto = false, string badge = default)
+        double ratio = -1, double position = -1, bool auto = false)
     {
         return ComposeUrl(Path.Combine(path, provider, id), new NameValueCollection
         {
@@ -43,7 +42,6 @@ public static class ApiClient
             { "ratio", ratio.ToString("R") },
             { "pos", position.ToString("R") },
             { "auto", auto.ToString() },
-            { "badge", badge },
             { "quality", Plugin.Instance.Configuration.DefaultImageQuality.ToString() }
         });
     }
@@ -66,30 +64,17 @@ public static class ApiClient
         });
     }
 
-    private static string ComposeTranslateApiUrl(string path, string q, string from, string to, string engine,
-        NameValueCollection nv = null)
-    {
-        return ComposeUrl(path, new NameValueCollection
-        {
-            { "q", q },
-            { "from", from },
-            { "to", to },
-            { "engine", engine },
-            nv ?? new NameValueCollection()
-        });
-    }
-
-    public static string GetPrimaryImageApiUrl(string provider, string id, double position = -1, string badge = default)
+    public static string GetPrimaryImageApiUrl(string provider, string id, double position = -1)
     {
         return ComposeImageApiUrl(PrimaryImageApi, provider, id,
-            ratio: Plugin.Instance.Configuration.PrimaryImageRatio, position: position, badge: badge);
+            ratio: Plugin.Instance.Configuration.PrimaryImageRatio, position: position);
     }
 
     public static string GetPrimaryImageApiUrl(string provider, string id, string url, double position = -1,
-        bool auto = false, string badge = default)
+        bool auto = false)
     {
         return ComposeImageApiUrl(PrimaryImageApi, provider, id, url,
-            Plugin.Instance.Configuration.PrimaryImageRatio, position, auto, badge);
+            Plugin.Instance.Configuration.PrimaryImageRatio, position, auto);
     }
 
     public static string GetThumbImageApiUrl(string provider, string id)
@@ -199,13 +184,6 @@ public static class ApiClient
     {
         var apiUrl = ComposeSearchApiUrl(MovieSearchApi, q, provider, fallback);
         return await GetDataAsync<List<MovieSearchResult>>(apiUrl, true, cancellationToken);
-    }
-
-    public static async Task<TranslationInfo> TranslateAsync(string q, string from, string to, string engine,
-        NameValueCollection nv, CancellationToken cancellationToken)
-    {
-        var apiUrl = ComposeTranslateApiUrl(TranslateApi, q, from, to, engine, nv);
-        return await GetDataAsync<TranslationInfo>(apiUrl, false, cancellationToken);
     }
 
     private static async Task<T> GetDataAsync<T>(string url, bool requireAuth,

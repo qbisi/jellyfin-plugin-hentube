@@ -1,10 +1,7 @@
-using System.Text;
-using System.Text.RegularExpressions;
 using Jellyfin.Plugin.MetaTube.Configuration;
 using Jellyfin.Plugin.MetaTube.Extensions;
 using Jellyfin.Plugin.MetaTube.Helpers;
 using Jellyfin.Plugin.MetaTube.Metadata;
-using Jellyfin.Plugin.MetaTube.Translation;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -28,11 +25,8 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 #endif
 {
-    private const string AvBase = "AVBASE";
     private const string Gfriends = "Gfriends";
     private const string Rating = "JP-18+";
-
-    private static readonly string[] AvBaseSupportedProviderNames = { "DUGA", "FANZA", "Getchu", "MGS" };
 
 #if __EMBY__
     public MetadataFeatures[] Features => new[]
@@ -87,47 +81,22 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
             return filenameMetadata;
         }
 
-        // Keep the title derived from the basename even when the matched title
-        // is substituted or translated below.
+        // Keep the title derived from the basename when no Japanese provider
+        // title is available.
         if (string.IsNullOrWhiteSpace(originalTitle)) originalTitle = m.Title;
         var metadataTitle = FilenameTitle.SelectMetadataTitle(m.Title, originalTitle);
         m.Title = metadataTitle;
-
-        // Convert to real actor names.
-        if (Configuration.EnableRealActorNames)
-            await ConvertToRealActorNames(m, cancellationToken);
 
         // Substitute title.
         if (Configuration.EnableTitleSubstitution)
             m.Title = Configuration.GetTitleSubstitutionTable().Substitute(m.Title);
 
-        // Substitute actors.
-        if (Configuration.EnableActorSubstitution)
-            m.Actors = Configuration.GetActorSubstitutionTable().Substitute(m.Actors).ToArray();
-
         // Substitute genres.
         if (Configuration.EnableGenreSubstitution)
             m.Genres = Configuration.GetGenreSubstitutionTable().Substitute(m.Genres).ToArray();
 
-        // Translate movie info.
-        if (Configuration.TranslationMode != TranslationMode.Disabled)
-        {
-            // HenTube titles are deliberately Japanese-first. Do not send the
-            // title through a translator (which can turn フラチ into Frach),
-            // but continue translating summaries when configured.
-            m.Title = string.Empty;
-            try
-            {
-                await TranslateMovieInfo(m, info.MetadataLanguage, cancellationToken);
-            }
-            finally
-            {
-                m.Title = metadataTitle;
-            }
-        }
-
-        // Title substitution and translation must never replace the selected
-        // Japanese title or the basename fallback.
+        // Title substitution must never replace the selected Japanese title or
+        // the basename fallback.
         m.Title = metadataTitle;
 
         // Distinct and clean blank list
@@ -136,36 +105,11 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         m.PreviewImages = m.PreviewImages?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray() ??
                           Array.Empty<string>();
 
-        // Build parameters.
-        var parameters = new Dictionary<string, string>
-        {
-            { @"{provider}", m.Provider },
-            { @"{id}", m.Id },
-            { @"{number}", m.Number },
-            { @"{title}", m.Title },
-            { @"{series}", m.Series },
-            { @"{maker}", m.Maker },
-            { @"{label}", m.Label },
-            { @"{director}", m.Director },
-            { @"{actors}", m.Actors?.Any() == true ? string.Join(' ', m.Actors) : string.Empty },
-            { @"{first_actor}", m.Actors?.FirstOrDefault() },
-            { @"{year}", $"{m.ReleaseDate:yyyy}" },
-            { @"{month}", $"{m.ReleaseDate:MM}" },
-            { @"{date}", $"{m.ReleaseDate:yyyy-MM-dd}" }
-        };
-
         var result = new MetadataResult<Movie>
         {
             Item = new Movie
             {
-                Name = RenderTemplate(
-                    Configuration.EnableTemplate
-                        ? Configuration.NameTemplate
-                        : PluginConfiguration.DefaultNameTemplate, parameters),
-                Tagline = RenderTemplate(
-                    Configuration.EnableTemplate
-                        ? Configuration.TaglineTemplate
-                        : PluginConfiguration.DefaultTaglineTemplate, parameters),
+                Name = m.Title,
                 OriginalTitle = originalTitle,
                 Overview = m.Summary,
                 OfficialRating = Rating,
@@ -212,18 +156,6 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         // Add tag (label).
         if (!string.IsNullOrWhiteSpace(m.Label))
             result.Item.AddTag(m.Label);
-
-        // Add director.
-        if (Configuration.EnableDirectors && !string.IsNullOrWhiteSpace(m.Director))
-            result.AddPerson(new PersonInfo
-            {
-                Name = m.Director,
-#if __EMBY__
-                Type = PersonType.Director
-#else
-                Type = PersonKind.Director
-#endif
-            });
 
         // Add actors.
         foreach (var name in m.Actors ?? Enumerable.Empty<string>())
@@ -281,27 +213,10 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
                 pid.Update != true, cancellationToken));
         }
 
-        if (Configuration.EnableMovieProviderFilter)
-        {
-            if (Configuration.GetMovieProviderFilter() is { } filter &&
-                filter.Any()) // Apply only if filter is not empty.
-            {
-                // Filter out mismatched results.
-                searchResults.RemoveAll(m => !filter.Contains(m.Provider, StringComparer.OrdinalIgnoreCase));
-                // Reorder results by stable sort.
-                searchResults = searchResults.OrderBy(m =>
-                    filter.FindIndex(s => s.Equals(m.Provider, StringComparison.OrdinalIgnoreCase))).ToList();
-            }
-            else
-            {
-                Logger.Warn("Movie provider filter enabled but never used");
-            }
-        }
-
         var results = new List<RemoteSearchResult>();
         if (!searchResults.Any())
         {
-            Logger.Warn("Movie not found or has been filtered: {0}", pid.Id);
+            Logger.Warn("Movie not found: {0}", pid.Id);
             return results;
         }
 
@@ -353,92 +268,6 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         {
             Logger.Error("Get actor image error: {0} ({1})", actor.Name, e.Message);
         }
-    }
-
-    private async Task ConvertToRealActorNames(MovieSearchResult m, CancellationToken cancellationToken)
-    {
-        if (!AvBaseSupportedProviderNames.Contains(m.Provider, StringComparer.OrdinalIgnoreCase)) return;
-
-        try
-        {
-            var searchResults = await ApiClient.SearchMovieAsync(m.Id, AvBase, cancellationToken);
-            if (searchResults?.Any() != true)
-            {
-                Logger.Warn("Movie not found on AVBASE: {0}", m.Id);
-                return;
-            }
-
-            foreach (var result in searchResults)
-            {
-                var similarity = CalculateTitleSimilarity(m, result);
-
-                Logger.Info("Calculate movie title similarity for {0} ({1}) and {2} ({3}): {4:0.00%}",
-                    m.Id, m.Provider, result.Id, result.Provider, similarity);
-
-                if (similarity >= 0.8)
-                {
-                    if (result.Actors?.Any() == true)
-                        m.Actors = result.Actors;
-                    return;
-                }
-            }
-
-            Logger.Warn("No matching movie found on AVBASE for {0}", m.Id);
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Convert to real actor names error: {0} ({1})", m.Number, e.Message);
-        }
-    }
-
-    private static double CalculateTitleSimilarity(MovieSearchResult source, MovieSearchResult target)
-    {
-        var sourceKey = Normalize(source.Number + source.Title);
-        var targetKey = Normalize(target.Number + target.Title);
-
-        if (string.IsNullOrWhiteSpace(sourceKey) || string.IsNullOrWhiteSpace(targetKey))
-            return 0.0;
-
-        var distance = Levenshtein.Distance(sourceKey, targetKey);
-        var avgLength = (sourceKey.Length + targetKey.Length) / 2.0;
-        var similarity = 1.0 - distance / avgLength;
-
-        return Math.Clamp(similarity, 0.0, 1.0);
-
-        string Normalize(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s))
-                return string.Empty;
-
-            s = s.ToLowerInvariant();
-            s = Regex.Replace(s, @"[\s\[\]\(\)【】（）]", "");
-            return s.Trim();
-        }
-    }
-
-    private async Task TranslateMovieInfo(Metadata.MovieInfo m, string language, CancellationToken cancellationToken)
-    {
-        try
-        {
-            Logger.Info("Translate movie info language: {0} => {1}", m.Number, language);
-            await TranslationHelper.TranslateAsync(m, language, cancellationToken);
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Translate error: {0}", e.Message);
-        }
-    }
-
-    private static string RenderTemplate(string template, Dictionary<string, string> parameters)
-    {
-        if (string.IsNullOrWhiteSpace(template))
-            return string.Empty;
-
-        var sb = parameters.Where(kvp => template.Contains(kvp.Key))
-            .Aggregate(new StringBuilder(template),
-                (sb, kvp) => sb.Replace(kvp.Key, kvp.Value));
-
-        return sb.ToString().Trim();
     }
 
     private static MetadataResult<Movie> GetFilenameMetadata(string path, string fallbackTitle)
