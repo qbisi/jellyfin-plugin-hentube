@@ -272,7 +272,7 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 
     private static MetadataResult<Movie> GetFilenameMetadata(string path, string fallbackTitle)
     {
-        if (FilenameMetadataParser.TryParse(path, Configuration.GetStudioPresets(),
+        if (FilenameMetadataParser.TryParse(path, Configuration.GetTagMappings(), Configuration.GetStudioPresets(),
                 Configuration.GetIgnoredTags(), out var metadata))
         {
             return new MetadataResult<Movie>

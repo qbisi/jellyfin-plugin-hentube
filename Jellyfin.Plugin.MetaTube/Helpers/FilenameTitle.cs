@@ -6,7 +6,8 @@ internal static partial class FilenameTitle
 {
     public static bool TryGetStructuredTitle(string path, out string title)
     {
-        if (!FilenameMetadataParser.TryParse(path, Array.Empty<string>(), Array.Empty<string>(), out var metadata))
+        if (!FilenameMetadataParser.TryParse(path, Array.Empty<SedSubstitution>(), Array.Empty<string>(),
+                Array.Empty<SedDeleteExpression>(), out var metadata))
         {
             title = string.Empty;
             return false;

@@ -58,6 +58,16 @@
                 </div>
 
                 <div class="verticalSection">
+                    <h2 class="sectionTitle">Tag mapping</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtRawTagMappings">Tag mapping rules:</label>
+                        <textarea class="emby-input" id="txtRawTagMappings" is="emby-input" name="txtRawTagMappings" rows="5"></textarea>
+                        <div class="fieldDescription">One sed-style substitution per line: s/&lt;regex&gt;/&lt;replacement&gt;/[gI]. Rules run in order before date, studio, ignored-tag, or ordinary-tag matching. Use g for all matches, I for case-insensitive matching, &amp; for the complete match, and \1 through \9 for capture groups.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
                     <h2 class="sectionTitle">Filename metadata</h2>
 
                     <div class="inputContainer">
@@ -69,7 +79,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtRawIgnoredTags">Ignored tags:</label>
                         <textarea class="emby-input" id="txtRawIgnoredTags" is="emby-input" name="txtRawIgnoredTags" rows="5"></textarea>
-                        <div class="fieldDescription">One value per line. Matching [...] fields are not added as tags.</div>
+                        <div class="fieldDescription">One sed-style delete expression per line: /&lt;regex&gt;/[I]d. For example, /^(1080p|2160p)$/Id ignores either complete tag without regard to case.</div>
                     </div>
                 </div>
 
@@ -139,6 +149,7 @@
             ApiClient.getPluginConfiguration(MetaTubePluginConfig.pluginUniqueId).then(function (config) {
                 $('#txtServer', page).val(config.Server).change();
                 $('#txtToken', page).val(config.Token).change();
+                $('#txtRawTagMappings', page).val(config.RawTagMappings).change();
                 $('#txtRawStudioPresets', page).val(config.RawStudioPresets).change();
                 $('#txtRawIgnoredTags', page).val(config.RawIgnoredTags).change();
                 page.querySelector('#chkEnableCollections').checked = config.EnableCollections;
@@ -160,6 +171,7 @@
             ApiClient.getPluginConfiguration(MetaTubePluginConfig.pluginUniqueId).then(function (config) {
                 config.Server = $('#txtServer', form).val();
                 config.Token = $('#txtToken', form).val();
+                config.RawTagMappings = $('#txtRawTagMappings', form).val();
                 config.RawStudioPresets = $('#txtRawStudioPresets', form).val();
                 config.RawIgnoredTags = $('#txtRawIgnoredTags', form).val();
                 config.EnableCollections = $('#chkEnableCollections', form).prop('checked');

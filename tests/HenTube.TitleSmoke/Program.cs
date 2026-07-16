@@ -61,14 +61,24 @@ AssertEqual(false, FilenameTitle.TryGetStructuredTitle(bareDatePath, out _), "ba
 
 var configuration = new PluginConfiguration
 {
+    RawTagMappings = "s/^date://\ns/^studio:\\(.*\\)$/\\1/I\ns/^UHD$/2160p/I",
     RawStudioPresets = "milky\nQueen Bee\nMILKY",
-    RawIgnoredTags = "1080P\nUncensored"
+    RawIgnoredTags = "/^(1080p|2160p|Uncensored)$/Id"
 };
 AssertSequence(new[] { "milky", "Queen Bee" }, configuration.GetStudioPresets(), "studio preset parsing");
-AssertSequence(new[] { "1080P", "Uncensored" }, configuration.GetIgnoredTags(), "ignored tag parsing");
+AssertEqual(3, configuration.GetTagMappings().Count, "tag mapping parsing");
+AssertEqual(1, configuration.GetIgnoredTags().Count, "ignored tag parsing");
 
-const string localPath = "/media/[051225][Milky][1080p][a‖b][Uncensored] 姉とボイン Vol.1.mkv";
-AssertEqual(true, FilenameMetadataParser.TryParse(localPath, configuration.GetStudioPresets(),
+AssertEqual("Xaa", SedSubstitution.TryParse("s/a/X/").Apply("aaa"), "sed first substitution");
+AssertEqual("XXX", SedSubstitution.TryParse("s/a/X/g").Apply("aaa"), "sed global substitution");
+AssertEqual("<foo-foo>", SedSubstitution.TryParse(@"s/^\(foo\)$/<&-\1>/").Apply("foo"),
+    "sed match and capture replacement");
+AssertEqual(true, SedDeleteExpression.TryParse(@"/^uncensored$/Id").Matches("Uncensored"),
+    "sed case-insensitive delete");
+
+const string localPath = "/media/[date:051225][studio:Milky][UHD][a‖b][Uncensored] 姉とボイン Vol.1.mkv";
+AssertEqual(true, FilenameMetadataParser.TryParse(localPath, configuration.GetTagMappings(),
+    configuration.GetStudioPresets(),
     configuration.GetIgnoredTags(), out var localMetadata), "local metadata detection");
 AssertEqual(title, localMetadata.Title, "local metadata title");
 AssertEqual(new DateTime(2005, 12, 25, 0, 0, 0, DateTimeKind.Utc), localMetadata.ReleaseDate,
@@ -77,8 +87,9 @@ AssertSequence(new[] { "Milky" }, localMetadata.Studios, "local metadata studios
 AssertSequence(new[] { "a‖b" }, localMetadata.Tags, "local metadata tags");
 
 const string invalidDatePath = "/media/[991332] Invalid Date.mkv";
-AssertEqual(true, FilenameMetadataParser.TryParse(invalidDatePath, Array.Empty<string>(),
-    Array.Empty<string>(), out var invalidDateMetadata), "invalid date metadata detection");
+AssertEqual(true, FilenameMetadataParser.TryParse(invalidDatePath, Array.Empty<SedSubstitution>(),
+    Array.Empty<string>(), Array.Empty<SedDeleteExpression>(), out var invalidDateMetadata),
+    "invalid date metadata detection");
 AssertEqual(null, invalidDateMetadata.ReleaseDate, "invalid date is not a release date");
 AssertSequence(new[] { "991332" }, invalidDateMetadata.Tags, "invalid date becomes tag");
 

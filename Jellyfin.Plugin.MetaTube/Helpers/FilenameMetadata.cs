@@ -13,8 +13,9 @@ internal static partial class FilenameMetadataParser
 {
     public static bool TryParse(
         string path,
+        IEnumerable<SedSubstitution> tagMappings,
         IEnumerable<string> studioPresets,
-        IEnumerable<string> ignoredTags,
+        IEnumerable<SedDeleteExpression> ignoredTags,
         out FilenameMetadata metadata)
     {
         var basename = GetBasename(path);
@@ -27,8 +28,8 @@ internal static partial class FilenameMetadataParser
 
         var studios = new HashSet<string>(studioPresets ?? Array.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
-        var ignored = new HashSet<string>(ignoredTags ?? Array.Empty<string>(),
-            StringComparer.OrdinalIgnoreCase);
+        var mappings = tagMappings?.ToArray() ?? Array.Empty<SedSubstitution>();
+        var ignored = ignoredTags?.ToArray() ?? Array.Empty<SedDeleteExpression>();
         var matchedStudios = new List<string>();
         var tags = new List<string>();
         DateTime? releaseDate = null;
@@ -36,6 +37,10 @@ internal static partial class FilenameMetadataParser
         foreach (Match match in matches)
         {
             var value = match.Groups[1].Value.Trim();
+            foreach (var mapping in mappings)
+                value = mapping.Apply(value);
+            value = value.Trim();
+
             if (value.Length == 0)
                 continue;
 
@@ -51,7 +56,7 @@ internal static partial class FilenameMetadataParser
                 continue;
             }
 
-            if (!ignored.Contains(value))
+            if (!ignored.Any(rule => rule.Matches(value)))
                 AddDistinct(tags, value);
         }
 

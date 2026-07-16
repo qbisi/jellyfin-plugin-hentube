@@ -32,9 +32,12 @@ Before remote metadata matching, HenTube derives default local metadata directly
 from the full media path. It removes every `[...]` field from the basename and
 uses the result as both the title and original title. A valid `[yymmdd]` field
 sets the premiere date and production year. Other bracket fields become tags,
-except values listed in the studio presets or ignored-tags settings. Studio and
-ignored-tag matching is case-insensitive. A field such as `[a‖b]` remains the
-single tag `a‖b`; separators inside a field have no special meaning.
+except values listed in the studio presets or matched by ignored-tag rules. Tag
+mapping rules use sed-style `s/<regex>/<replacement>/[gI]` expressions and run
+in order before date, studio, ignored-tag, or ordinary-tag matching. Ignored tags
+use sed-style `/<regex>/[I]d` expressions. Substitutions support sed `&` and
+`\1`–`\9` replacements. A field such as `[a‖b]` remains the single tag `a‖b`;
+separators inside a field have no special meaning.
 
 The MetaTube-compatible server is optional. When it is not configured, returns
 no match, or cannot be reached, the filename-derived title, date, studios, and

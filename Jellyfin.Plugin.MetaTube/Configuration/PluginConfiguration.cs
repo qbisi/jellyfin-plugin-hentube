@@ -32,6 +32,13 @@ public class PluginConfiguration : BasePluginConfiguration
     public string Token { get; set; } = string.Empty;
 
 #if __EMBY__
+    [DisplayName("Tag mapping rules")]
+    [Description("Sed-style substitutions applied to every bracket tag before any tag matching. One rule per line.")]
+    [EditMultiline(5)]
+#endif
+    public string RawTagMappings { get; set; } = string.Empty;
+
+#if __EMBY__
     [DisplayName("Studio presets")]
     [Description("Bracket tags matching one of these values are stored as studios. One value per line.")]
     [EditMultiline(5)]
@@ -40,14 +47,16 @@ public class PluginConfiguration : BasePluginConfiguration
 
 #if __EMBY__
     [DisplayName("Ignored filename tags")]
-    [Description("Bracket tags matching one of these values are not added to the movie. One value per line.")]
+    [Description("Sed-style delete expressions for bracket tags that should not be added. One rule per line.")]
     [EditMultiline(5)]
 #endif
     public string RawIgnoredTags { get; set; } = string.Empty;
 
     public IReadOnlyList<string> GetStudioPresets() => ParseLines(RawStudioPresets);
 
-    public IReadOnlyList<string> GetIgnoredTags() => ParseLines(RawIgnoredTags);
+    internal IReadOnlyList<SedSubstitution> GetTagMappings() => SedSubstitution.ParseLines(RawTagMappings);
+
+    internal IReadOnlyList<SedDeleteExpression> GetIgnoredTags() => SedDeleteExpression.ParseLines(RawIgnoredTags);
 
 #if __EMBY__
     [DisplayName("Enable auto update")]

@@ -30,7 +30,7 @@ public sealed class MovieTitleProvider : ICustomMetadataProvider<Movie>, IPreRef
         cancellationToken.ThrowIfCancellationRequested();
 
         var configuration = Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
-        if (!FilenameMetadataParser.TryParse(item.Path, configuration.GetStudioPresets(),
+        if (!FilenameMetadataParser.TryParse(item.Path, configuration.GetTagMappings(), configuration.GetStudioPresets(),
                 configuration.GetIgnoredTags(), out var metadata))
             return Task.FromResult(ItemUpdateType.None);
 
