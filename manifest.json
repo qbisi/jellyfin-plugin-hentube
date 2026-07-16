@@ -1,0 +1,53 @@
+[
+  {
+    "guid": "a32c0577-9dd2-431b-94a6-73720e040d86",
+    "name": "HenTube",
+    "description": "HenTube metadata plugin for Jellyfin/Emby.",
+    "overview": "Uses the media file basename when searching a MetaTube-compatible server.",
+    "owner": "qbisi",
+    "category": "Metadata",
+    "imageUrl": "https://raw.githubusercontent.com/qbisi/jellyfin-plugin-hentube/main/Jellyfin.Plugin.MetaTube/thumb.png",
+    "versions": [
+      {
+        "checksum": "2c89f6b6e99dda34a2b30fce599528c6",
+        "changelog": "Use the media basename for metadata searches.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/qbisi/jellyfin-plugin-hentube/releases/download/v2026.716.246.0/Jellyfin.HenTube@v2026.716.246.0.zip",
+        "timestamp": "2026-07-16T02:46:28Z",
+        "version": "2026.716.246.0"
+      },
+      {
+        "checksum": "85b80ae1a0daafd4a7f2f51e2154cff7",
+        "changelog": "Use the media basename for metadata searches.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/qbisi/jellyfin-plugin-hentube/releases/download/v2026.716.222.0/Jellyfin.HenTube@v2026.716.222.0.zip",
+        "timestamp": "2026-07-16T02:22:49Z",
+        "version": "2026.716.222.0"
+      },
+      {
+        "checksum": "c2e2556de497bd611141eb275b207419",
+        "changelog": "Use the media basename for metadata searches.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/qbisi/jellyfin-plugin-hentube/releases/download/v2026.714.257.0/Jellyfin.HenTube@v2026.714.257.0.zip",
+        "timestamp": "2026-07-14T02:58:00Z",
+        "version": "2026.714.257.0"
+      },
+      {
+        "checksum": "c20b18579a0bb909b290962185cc0e72",
+        "changelog": "Use the media basename for metadata searches.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/qbisi/jellyfin-plugin-hentube/releases/download/v2026.714.220.0/Jellyfin.HenTube@v2026.714.220.0.zip",
+        "timestamp": "2026-07-14T02:21:41Z",
+        "version": "2026.714.220.0"
+      },
+      {
+        "checksum": "a28893da5aa6b1ddfe0fbbe8d5e34464",
+        "changelog": "Use the media basename for metadata searches.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/qbisi/jellyfin-plugin-hentube/releases/download/v2026.714.002.0/Jellyfin.HenTube@v2026.714.002.0.zip",
+        "timestamp": "2026-07-14T00:03:08Z",
+        "version": "2026.714.002.0"
+      }
+    ]
+  }
+]
