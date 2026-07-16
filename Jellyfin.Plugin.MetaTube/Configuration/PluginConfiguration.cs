@@ -22,8 +22,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
 #if __EMBY__
     [DisplayName("Server")]
-    [Description("Full url of the MetaTube Server, HTTPS protocol is recommended.")]
-    [Required]
+    [Description("Optional MetaTube Server URL. Leave blank to use filename metadata only.")]
 #endif
     public string Server { get; set; } = string.Empty;
 
@@ -32,6 +31,24 @@ public class PluginConfiguration : BasePluginConfiguration
     [Description("Access token for the MetaTube Server, or blank if no token is set by the backend.")]
 #endif
     public string Token { get; set; } = string.Empty;
+
+#if __EMBY__
+    [DisplayName("Studio presets")]
+    [Description("Bracket tags matching one of these values are stored as studios. One value per line.")]
+    [EditMultiline(5)]
+#endif
+    public string RawStudioPresets { get; set; } = string.Empty;
+
+#if __EMBY__
+    [DisplayName("Ignored filename tags")]
+    [Description("Bracket tags matching one of these values are not added to the movie. One value per line.")]
+    [EditMultiline(5)]
+#endif
+    public string RawIgnoredTags { get; set; } = string.Empty;
+
+    public IReadOnlyList<string> GetStudioPresets() => ParseLines(RawStudioPresets);
+
+    public IReadOnlyList<string> GetIgnoredTags() => ParseLines(RawIgnoredTags);
 
 #if __EMBY__
     [DisplayName("Enable auto update")]
@@ -279,4 +296,14 @@ public class PluginConfiguration : BasePluginConfiguration
     }
 
     private SubstitutionTable _genreSubstitutionTable;
+
+    private static IReadOnlyList<string> ParseLines(string value)
+    {
+        return (value ?? string.Empty)
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(item => item.Trim())
+            .Where(item => item.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
 }

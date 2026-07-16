@@ -6,27 +6,25 @@ internal static partial class FilenameTitle
 {
     public static bool TryGetStructuredTitle(string path, out string title)
     {
-        var basename = GetBasename(path);
-        if (string.IsNullOrWhiteSpace(basename) ||
-            (!BracketTagRegex().IsMatch(basename) && !HasStandaloneDate(basename)))
+        if (!FilenameMetadataParser.TryParse(path, Array.Empty<string>(), Array.Empty<string>(), out var metadata))
         {
             title = string.Empty;
             return false;
         }
 
-        title = CleanTitle(basename);
-        return !string.IsNullOrWhiteSpace(title);
+        title = metadata.Title;
+        return true;
     }
 
     public static string GetSearchQuery(string path, string fallback)
     {
-        var basename = GetBasename(path);
+        var basename = FilenameMetadataParser.GetBasename(path);
         return !string.IsNullOrWhiteSpace(basename) ? basename : fallback?.Trim() ?? string.Empty;
     }
 
     public static string GetOriginalTitle(string path, string fallback)
     {
-        var basename = GetBasename(path);
+        var basename = FilenameMetadataParser.GetBasename(path);
         if (string.IsNullOrWhiteSpace(basename))
             basename = fallback ?? string.Empty;
 
@@ -45,37 +43,7 @@ internal static partial class FilenameTitle
     private static string CleanTitle(string value)
     {
         var title = BracketTagRegex().Replace(value, " ");
-        title = StandaloneDateRegex().Replace(title,
-            match => IsShortDate(match.Value) ? " " : match.Value);
         return WhitespaceRegex().Replace(title, " ").Trim();
-    }
-
-    private static bool HasStandaloneDate(string value)
-    {
-        foreach (Match match in StandaloneDateRegex().Matches(value))
-        {
-            if (IsShortDate(match.Value)) return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsShortDate(string value)
-    {
-        if (value.Length != 6 || !int.TryParse(value.AsSpan(2, 2), out var month) ||
-            !int.TryParse(value.AsSpan(4, 2), out var day) || month is < 1 or > 12)
-            return false;
-
-        return day >= 1 && day <= DateTime.DaysInMonth(2000, month);
-    }
-
-    private static string GetBasename(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return string.Empty;
-
-        var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        return Path.GetFileNameWithoutExtension(trimmed);
     }
 
     [GeneratedRegex(@"\[[^\[\]]*\]")]
@@ -83,9 +51,6 @@ internal static partial class FilenameTitle
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
-
-    [GeneratedRegex(@"(?<!\S)\d{6}(?!\S)")]
-    private static partial Regex StandaloneDateRegex();
 
     [GeneratedRegex(@"[\u3005-\u3007\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f]")]
     private static partial Regex JapaneseTextRegex();

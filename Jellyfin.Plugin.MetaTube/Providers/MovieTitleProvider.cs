@@ -9,8 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.MetaTube.Providers;
 
 /// <summary>
-/// Corrects Jellyfin's one-tag filename parsing before remote metadata runs.
-/// This is deliberately independent of HenTube server matching.
+/// Applies the local filename metadata before remote metadata runs.
 /// </summary>
 public sealed class MovieTitleProvider : ICustomMetadataProvider<Movie>, IPreRefreshProvider, IHasOrder
 {
@@ -21,7 +20,7 @@ public sealed class MovieTitleProvider : ICustomMetadataProvider<Movie>, IPreRef
         _logger = logger;
     }
 
-    public string Name => "HenTube Filename Title";
+    public string Name => "HenTube Filename Metadata";
 
     public int Order => -1000;
 
@@ -30,20 +29,30 @@ public sealed class MovieTitleProvider : ICustomMetadataProvider<Movie>, IPreRef
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Leave ordinary movie names to Jellyfin and other metadata providers.
-        if (!FilenameTitle.TryGetStructuredTitle(item.Path, out var title))
+        var configuration = Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
+        if (!FilenameMetadataParser.TryParse(item.Path, configuration.GetStudioPresets(),
+                configuration.GetIgnoredTags(), out var metadata))
             return Task.FromResult(ItemUpdateType.None);
 
-        if (!string.Equals(item.Name, title, StringComparison.Ordinal) ||
-            !string.Equals(item.OriginalTitle, title, StringComparison.Ordinal))
-        {
-            _logger.LogInformation("Correct movie title from filename: {OldTitle} => {Title}", item.Name, title);
-            item.Name = title;
-            item.OriginalTitle = title;
-            return Task.FromResult(ItemUpdateType.MetadataEdit);
-        }
+        var changed = !string.Equals(item.Name, metadata.Title, StringComparison.Ordinal) ||
+                      !string.Equals(item.OriginalTitle, metadata.Title, StringComparison.Ordinal) ||
+                      item.PremiereDate != metadata.ReleaseDate ||
+                      item.ProductionYear != metadata.ReleaseDate?.Year ||
+                      !(item.Studios ?? Array.Empty<string>()).SequenceEqual(metadata.Studios) ||
+                      !(item.Tags ?? Array.Empty<string>()).SequenceEqual(metadata.Tags);
 
-        return Task.FromResult(ItemUpdateType.None);
+        if (!changed)
+            return Task.FromResult(ItemUpdateType.None);
+
+        _logger.LogInformation("Apply filename metadata: {OldTitle} => {Title}", item.Name, metadata.Title);
+        item.Name = metadata.Title;
+        item.OriginalTitle = metadata.Title;
+        item.PremiereDate = metadata.ReleaseDate;
+        item.ProductionYear = metadata.ReleaseDate?.Year;
+        item.Studios = metadata.Studios;
+        item.Tags = metadata.Tags;
+
+        return Task.FromResult(ItemUpdateType.MetadataEdit);
     }
 }
 #endif

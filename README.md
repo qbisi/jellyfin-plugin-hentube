@@ -28,15 +28,17 @@ HenTube sends this query to the configured MetaTube-compatible server:
 
 When Jellyfin does not provide a usable path, HenTube falls back to `info.Name`.
 
-Before remote metadata matching, HenTube also derives the local movie title from
-the media path and removes every `[...]` tag. This corrects Jellyfin's partial
-parsing of names such as `[date][studio] title` even when the HenTube server is
-offline or returns no match. A successful match may replace the display name
-with the provider title, while `OriginalTitle` keeps the tag-free filename title.
-The complete basename is sent unchanged, so the server can classify date and
-studio fields independently of their order. Combined `[studio‖date]` and
-`[date‖studio]`, separate or trailing tags, and filenames without tags are all
-supported.
+Before remote metadata matching, HenTube derives default local metadata directly
+from the full media path. It removes every `[...]` field from the basename and
+uses the result as both the title and original title. A valid `[yymmdd]` field
+sets the premiere date and production year. Other bracket fields become tags,
+except values listed in the studio presets or ignored-tags settings. Studio and
+ignored-tag matching is case-insensitive. A field such as `[a‖b]` remains the
+single tag `a‖b`; separators inside a field have no special meaning.
+
+The MetaTube-compatible server is optional. When it is not configured, returns
+no match, or cannot be reached, the filename-derived title, date, studios, and
+tags remain usable without a backend.
 
 Matched titles are Japanese-first. English and romanized provider titles are
 never applied: when Japanese metadata is unavailable, HenTube keeps the cleaned
@@ -51,7 +53,7 @@ artwork; poster covers are never repurposed as Jellyfin backdrops.
 
 - Jellyfin 10.11.x
 - Emby 4.9.x
-- MetaTube-compatible server API
+- Optional MetaTube-compatible server API
 
 ## Upstream
 

@@ -1,5 +1,6 @@
 using Jellyfin.Plugin.MetaTube.Helpers;
 using Jellyfin.Plugin.MetaTube.Providers;
+using Jellyfin.Plugin.MetaTube.Configuration;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
@@ -21,6 +22,11 @@ var update = await provider.FetchAsync(movie, null!, CancellationToken.None);
 
 AssertEqual(title, movie.Name, "movie name");
 AssertEqual(title, movie.OriginalTitle, "movie original title");
+AssertEqual(new DateTime(2005, 12, 25, 0, 0, 0, DateTimeKind.Utc), movie.PremiereDate,
+    "movie premiere date");
+AssertEqual(2005, movie.ProductionYear, "movie production year");
+AssertSequence(Array.Empty<string>(), movie.Studios, "movie studios without presets");
+AssertSequence(new[] { "Milky", "1080p", "Uncensored" }, movie.Tags, "movie tags without presets");
 AssertEqual(ItemUpdateType.MetadataEdit, update, "update type");
 
 var ordinaryMovie = new Movie { Path = "/media/Ordinary Movie.mkv", Name = "Existing metadata" };
@@ -49,9 +55,32 @@ foreach (var taggedPath in new[]
 }
 
 const string bareDatePath = "/media/姉とボイン Vol.1 051225.mkv";
-AssertEqual(title, FilenameTitle.GetOriginalTitle(bareDatePath, "broken"), "bare date title");
-AssertEqual(true, FilenameTitle.TryGetStructuredTitle(bareDatePath, out var bareDateTitle), "bare date detection");
-AssertEqual(title, bareDateTitle, "bare date parsed title");
+AssertEqual("姉とボイン Vol.1 051225", FilenameTitle.GetOriginalTitle(bareDatePath, "broken"),
+    "bare date remains in title");
+AssertEqual(false, FilenameTitle.TryGetStructuredTitle(bareDatePath, out _), "bare date is not a bracket field");
+
+var configuration = new PluginConfiguration
+{
+    RawStudioPresets = "milky\nQueen Bee\nMILKY",
+    RawIgnoredTags = "1080P\nUncensored"
+};
+AssertSequence(new[] { "milky", "Queen Bee" }, configuration.GetStudioPresets(), "studio preset parsing");
+AssertSequence(new[] { "1080P", "Uncensored" }, configuration.GetIgnoredTags(), "ignored tag parsing");
+
+const string localPath = "/media/[051225][Milky][1080p][a‖b][Uncensored] 姉とボイン Vol.1.mkv";
+AssertEqual(true, FilenameMetadataParser.TryParse(localPath, configuration.GetStudioPresets(),
+    configuration.GetIgnoredTags(), out var localMetadata), "local metadata detection");
+AssertEqual(title, localMetadata.Title, "local metadata title");
+AssertEqual(new DateTime(2005, 12, 25, 0, 0, 0, DateTimeKind.Utc), localMetadata.ReleaseDate,
+    "local metadata release date");
+AssertSequence(new[] { "Milky" }, localMetadata.Studios, "local metadata studios");
+AssertSequence(new[] { "a‖b" }, localMetadata.Tags, "local metadata tags");
+
+const string invalidDatePath = "/media/[991332] Invalid Date.mkv";
+AssertEqual(true, FilenameMetadataParser.TryParse(invalidDatePath, Array.Empty<string>(),
+    Array.Empty<string>(), out var invalidDateMetadata), "invalid date metadata detection");
+AssertEqual(null, invalidDateMetadata.ReleaseDate, "invalid date is not a release date");
+AssertSequence(new[] { "991332" }, invalidDateMetadata.Tags, "invalid date becomes tag");
 
 AssertEqual("フラチ", FilenameTitle.SelectMetadataTitle("フラチ", "OVA フラチ #2"),
     "Japanese metadata title");
@@ -64,4 +93,11 @@ static void AssertEqual<T>(T expected, T actual, string field)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
         throw new InvalidOperationException($"Unexpected {field}: expected '{expected}', got '{actual}'");
+}
+
+static void AssertSequence(IEnumerable<string> expected, IEnumerable<string> actual, string field)
+{
+    if (!expected.SequenceEqual(actual))
+        throw new InvalidOperationException(
+            $"Unexpected {field}: expected '[{string.Join(", ", expected)}]', got '[{string.Join(", ", actual)}]'");
 }

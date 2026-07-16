@@ -36,7 +36,7 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 
 #if __EMBY__
     public MetadataFeatures[] Features => new[]
-        { MetadataFeatures.Collections, MetadataFeatures.Adult, MetadataFeatures.RequiredSetup };
+        { MetadataFeatures.Collections, MetadataFeatures.Adult };
 
     public MovieProvider(ILogManager logManager) : base(logManager.CreateLogger<MovieProvider>())
 #else
@@ -49,6 +49,13 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         CancellationToken cancellationToken)
     {
         var originalTitle = FilenameTitle.GetOriginalTitle(info.Path, info.Name);
+        var filenameMetadata = GetFilenameMetadata(info.Path, info.Name);
+        if (string.IsNullOrWhiteSpace(Configuration.Server))
+        {
+            Logger.Info("Use filename metadata because no HenTube server is configured: {0}", originalTitle);
+            return filenameMetadata;
+        }
+
         var pid = info.GetPid(Plugin.ProviderId);
         if (string.IsNullOrWhiteSpace(pid.Id) || string.IsNullOrWhiteSpace(pid.Provider))
         {
@@ -56,8 +63,8 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
             var firstResult = (await GetSearchResults(info, cancellationToken)).FirstOrDefault();
             if (firstResult == null)
             {
-                Logger.Info("Keep filename title because no HenTube metadata matched: {0}", originalTitle);
-                return FilenameMetadata(originalTitle);
+                Logger.Info("Keep filename metadata because no HenTube metadata matched: {0}", originalTitle);
+                return filenameMetadata;
             }
 
             pid = firstResult.GetPid(Plugin.ProviderId);
@@ -76,8 +83,8 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         }
         catch (Exception e)
         {
-            Logger.Warn("HenTube movie info failed; keep filename title: {0}", e.Message);
-            return new MetadataResult<Movie>();
+            Logger.Warn("HenTube movie info failed; keep filename metadata: {0}", e.Message);
+            return filenameMetadata;
         }
 
         // Keep the title derived from the basename even when the matched title
@@ -240,6 +247,9 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(Configuration.Server))
+            return Array.Empty<RemoteSearchResult>();
+
         var pid = info.GetPid(Plugin.ProviderId);
 
         var searchResults = new List<MovieSearchResult>();
@@ -259,7 +269,7 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
             }
             catch (Exception e)
             {
-                Logger.Warn("HenTube movie search failed; keep filename title: {0}", e.Message);
+                Logger.Warn("HenTube movie search failed; keep filename metadata: {0}", e.Message);
                 return Array.Empty<RemoteSearchResult>();
             }
         }
@@ -431,8 +441,27 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         return sb.ToString().Trim();
     }
 
-    private static MetadataResult<Movie> FilenameMetadata(string title)
+    private static MetadataResult<Movie> GetFilenameMetadata(string path, string fallbackTitle)
     {
+        if (FilenameMetadataParser.TryParse(path, Configuration.GetStudioPresets(),
+                Configuration.GetIgnoredTags(), out var metadata))
+        {
+            return new MetadataResult<Movie>
+            {
+                Item = new Movie
+                {
+                    Name = metadata.Title,
+                    OriginalTitle = metadata.Title,
+                    PremiereDate = metadata.ReleaseDate,
+                    ProductionYear = metadata.ReleaseDate?.Year,
+                    Studios = metadata.Studios,
+                    Tags = metadata.Tags
+                },
+                HasMetadata = true
+            };
+        }
+
+        var title = FilenameTitle.GetOriginalTitle(path, fallbackTitle);
         if (string.IsNullOrWhiteSpace(title)) return new MetadataResult<Movie>();
 
         return new MetadataResult<Movie>

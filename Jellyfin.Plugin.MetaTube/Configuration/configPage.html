@@ -23,9 +23,9 @@
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="txtServer">Server:</label>
-                        <input id="txtServer" is="emby-input" name="txtServer" pattern="^https?://.+$" required
+                        <input id="txtServer" is="emby-input" name="txtServer" pattern="^https?://.+$"
                                type="text"/>
-                        <div class="fieldDescription">Full url of the MetaTube Server, HTTPS protocol is recommended.</div>
+                        <div class="fieldDescription">Optional MetaTube Server URL. Leave blank to use filename metadata only.</div>
                     </div>
 
                     <div class="inputContainer">
@@ -72,6 +72,22 @@
                             <span>Enable real actor names</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">Search and replace with real actor names from AVBASE.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Filename metadata</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtRawStudioPresets">Studio presets:</label>
+                        <textarea class="emby-input" id="txtRawStudioPresets" is="emby-input" name="txtRawStudioPresets" rows="5"></textarea>
+                        <div class="fieldDescription">One value per line. Matching [...] fields become studios instead of tags.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtRawIgnoredTags">Ignored tags:</label>
+                        <textarea class="emby-input" id="txtRawIgnoredTags" is="emby-input" name="txtRawIgnoredTags" rows="5"></textarea>
+                        <div class="fieldDescription">One value per line. Matching [...] fields are not added as tags.</div>
                     </div>
                 </div>
 
@@ -343,6 +359,8 @@
             ApiClient.getPluginConfiguration(MetaTubePluginConfig.pluginUniqueId).then(function (config) {
                 $('#txtServer', page).val(config.Server).change();
                 $('#txtToken', page).val(config.Token).change();
+                $('#txtRawStudioPresets', page).val(config.RawStudioPresets).change();
+                $('#txtRawIgnoredTags', page).val(config.RawIgnoredTags).change();
                 page.querySelector('#chkEnableCollections').checked = config.EnableCollections;
                 page.querySelector('#chkEnableDirectors').checked = config.EnableDirectors;
                 page.querySelector('#chkEnableRatings').checked = config.EnableRatings;
@@ -384,6 +402,8 @@
             ApiClient.getPluginConfiguration(MetaTubePluginConfig.pluginUniqueId).then(function (config) {
                 config.Server = $('#txtServer', form).val();
                 config.Token = $('#txtToken', form).val();
+                config.RawStudioPresets = $('#txtRawStudioPresets', form).val();
+                config.RawIgnoredTags = $('#txtRawIgnoredTags', form).val();
                 config.EnableCollections = $('#chkEnableCollections', form).prop('checked');
                 config.EnableDirectors = $('#chkEnableDirectors', form).prop('checked');
                 config.EnableRatings = $('#chkEnableRatings', form).prop('checked');
